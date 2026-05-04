@@ -5,7 +5,7 @@
 ![SQL Server](https://img.shields.io/badge/SQL_Server-2022-CC2927?style=for-the-badge&logo=microsoftsqlserver)
 ![PO UI](https://img.shields.io/badge/PO_UI-v21-0072C6?style=for-the-badge)
 
-Este projeto é uma solução de **Totem (Quiosque)** para chão de fábrica, desenvolvida para simplificar a impressão de etiquetas de Ordens de Produção (OP) integradas ao **ERP TOTVS Protheus**.
+Este projeto é uma solução para chão de fábrica, desenvolvida para simplificar a impressão de etiquetas de Ordens de Produção (OP) integradas ao **ERP TOTVS Protheus**.
 
 A aplicação utiliza uma arquitetura híbrida moderna, consumindo APIs REST e realizando operações diretas no banco de dados SQL Server para garantir agilidade e precisão no processo produtivo.
 
@@ -13,7 +13,7 @@ A aplicação utiliza uma arquitetura híbrida moderna, consumindo APIs REST e r
 
 ## ✨ Principais Funcionalidades
 
-- 🖥️ **Interface Touch-First**: Desenvolvida com **PO UI**, otimizada para telas sensíveis ao toque em ambientes industriais.
+- 🖥️ **Interface**: Desenvolvida com **PO UI**, otimizada para telas sensíveis ao toque em ambientes industriais.
 - ⌨️ **Teclado Numérico Virtual**: Teclado customizado integrado para entrada de dados (OP, Quantidade, NF), eliminando a necessidade de periféricos físicos no totem.
 - 🔍 **Validação de OP em Tempo Real**: Consulta instantânea via REST API ao Protheus para verificar status da OP, produto, armazém e roteiro.
 - 💾 **Atualização Direta via SQL**: Ao alterar a Nota Fiscal (NF) na tela, o sistema realiza um `UPDATE` direto na tabela **SC2** do Protheus através de uma ponte segura em Node.js.
@@ -64,7 +64,7 @@ npm install --legacy-peer-deps
 npm start
 ```
 
-O totem estará disponível em: `http://localhost:4200`
+O estará disponível em: `http://localhost:4200`
 
 ---
 
@@ -76,4 +76,3 @@ Este projeto foi construído seguindo as melhores práticas de segurança:
 ---
 
 ## 👨‍💻 Desenvolvido por [JeannnDev](https://github.com/JeannnDev)
-🚀 Modernizando processos industriais com tecnologia de ponta.
