@@ -113,7 +113,11 @@ export class LabelService {
   }
 
   updateLocalNF(op: string, nf: string, filial: string): Observable<any> {
-    return this.http.post('/local-sql/update-nf', { op, nf, filial });
+    let baseUrl = '';
+    if (isPlatformBrowser(this.platformId)) {
+      baseUrl = (window as any).__ENV__?.NEXT_PUBLIC_SQL_API_URL || '';
+    }
+    return this.http.post(`${baseUrl}/local-sql/update-nf`, { op, nf, filial });
   }
 
   saveSelection(printerId: string, layoutId: string) {

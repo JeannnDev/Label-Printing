@@ -5,9 +5,10 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 import 'dotenv/config';
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { join } from 'node:path';
 import sql from 'mssql';
+import cors from 'cors';
 
 // Mock do localStorage e browser globals para compatibilidade com PO UI no SSR
 if (typeof global !== 'undefined') {
@@ -56,6 +57,7 @@ if (typeof global !== 'undefined') {
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 const app = express();
+app.use(cors()); // Ativar CORS para todas as rotas
 app.use(express.json());
 
 const angularApp = new AngularNodeAppEngine();
@@ -77,8 +79,26 @@ const sqlConfig: sql.config = {
   }
 };
 
+// Gerenciamento do Pool de Conexão SQL
+let pool: sql.ConnectionPool | null = null;
+
+async function getSqlPool() {
+  if (pool && pool.connected) {
+    return pool;
+  }
+  try {
+    pool = await new sql.ConnectionPool(sqlConfig).connect();
+    console.log('[SQL] Conectado ao servidor:', sqlConfig.server);
+    return pool;
+  } catch (err) {
+    console.error('[SQL CONNECTION ERROR]', err);
+    pool = null;
+    throw err;
+  }
+}
+
 // API para atualizar a NF no Banco SQL
-app.post('/local-sql/update-nf', async (req, res): Promise<any> => {
+app.post('/local-sql/update-nf', async (req: Request, res: Response): Promise<any> => {
   const { op, nf, filial } = req.body;
 
   if (!op || op.length < 11) {
@@ -90,8 +110,8 @@ app.post('/local-sql/update-nf', async (req, res): Promise<any> => {
     const item = op.substring(6, 8);
     const sequen = op.substring(8, 11);
 
-    const pool = await sql.connect(sqlConfig);
-    const result = await pool.request()
+    const connection = await getSqlPool();
+    const result = await connection.request()
       .input('nf', sql.VarChar, nf)
       .input('filial', sql.VarChar, filial || process.env['NEXT_PUBLIC_API_FILIAL'])
       .input('num', sql.VarChar, num)
@@ -128,7 +148,7 @@ app.use(
 /**
  * Handle all other requests by rendering the Angular application.
  */
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   angularApp
     .handle(req)
     .then((response) => {
@@ -140,6 +160,7 @@ app.use((req, res, next) => {
           NEXT_PUBLIC_API_FILIAL: process.env['NEXT_PUBLIC_API_FILIAL'] || '0101',
           NEXT_PUBLIC_API_AUTHORIZATION: process.env['NEXT_PUBLIC_API_AUTHORIZATION'] || '',
           NEXT_PUBLIC_API_OPERADOR: process.env['NEXT_PUBLIC_API_OPERADOR'] || '000001',
+          NEXT_PUBLIC_SQL_API_URL: process.env['NEXT_PUBLIC_SQL_API_URL'] || '',
         });
 
         response.text().then(html => {
@@ -161,7 +182,7 @@ app.use((req, res, next) => {
  */
 if (isMainModule(import.meta.url) || process.env['pm_id']) {
   const port = process.env['PORT'] || 4000;
-  app.listen(port, (error) => {
+  app.listen(port, (error?: any) => {
     if (error) {
       throw error;
     }
