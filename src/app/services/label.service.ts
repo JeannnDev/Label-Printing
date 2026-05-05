@@ -78,8 +78,8 @@ export class LabelService {
     return this.api.get<any>(`/WsFuncApontamento?OP=${op}&OPERADOR=${operator}`).pipe(
       map((res: any) => {
         if (res.success === false || res.status === false || res.error) {
-           const errorMsg = res.error || (typeof res.response === 'string' ? res.response : (res.response?.errorMessage || 'OP inválida'));
-           return { success: false, error: errorMsg, op: '', produto: '', descProduto: '', quantidade: 0, status: '', nf: '', armazem: '' };
+          const errorMsg = res.error || (typeof res.response === 'string' ? res.response : (res.response?.errorMessage || 'OP inválida'));
+          return { success: false, error: errorMsg, op: '', produto: '', descProduto: '', quantidade: 0, status: '', nf: '', armazem: '' };
         }
         return {
           success: true,
@@ -113,11 +113,8 @@ export class LabelService {
   }
 
   updateLocalNF(op: string, nf: string, filial: string): Observable<any> {
-    let baseUrl = '';
-    if (isPlatformBrowser(this.platformId)) {
-      baseUrl = (window as any).__ENV__?.NEXT_PUBLIC_SQL_API_URL || '';
-    }
-    return this.http.post(`${baseUrl}/local-sql/update-nf`, { op, nf, filial });
+    // Agora chama o Webservices REST do Protheus passando os parâmetros na URL
+    return this.api.post(`/WsFuncApontamento?OP=${op}&NF=${nf}`, {});
   }
 
   saveSelection(printerId: string, layoutId: string) {

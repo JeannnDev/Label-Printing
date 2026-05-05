@@ -7,7 +7,7 @@ import {
 import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import { join } from 'node:path';
-import sql from 'mssql';
+
 import cors from 'cors';
 
 // Mock do localStorage e browser globals para compatibilidade com PO UI no SSR
@@ -62,77 +62,7 @@ app.use(express.json());
 
 const angularApp = new AngularNodeAppEngine();
 
-// Configuração do SQL Server
-const sqlConfig: sql.config = {
-  user: process.env['MSSQL_USER'],
-  password: process.env['MSSQL_PASSWORD'],
-  database: process.env['MSSQL_DB'],
-  server: process.env['MSSQL_HOST'] || '',
-  pool: {
-    max: 10,
-    min: 0,
-    idleTimeoutMillis: 30000
-  },
-  options: {
-    encrypt: false,
-    trustServerCertificate: true
-  }
-};
 
-// Gerenciamento do Pool de Conexão SQL
-let pool: sql.ConnectionPool | null = null;
-
-async function getSqlPool() {
-  if (pool && pool.connected) {
-    return pool;
-  }
-  try {
-    pool = await new sql.ConnectionPool(sqlConfig).connect();
-    console.log('[SQL] Conectado ao servidor:', sqlConfig.server);
-    return pool;
-  } catch (err) {
-    console.error('[SQL CONNECTION ERROR]', err);
-    pool = null;
-    throw err;
-  }
-}
-
-// API para atualizar a NF no Banco SQL
-app.post('/local-sql/update-nf', async (req: Request, res: Response): Promise<any> => {
-  const { op, nf, filial } = req.body;
-
-  if (!op || op.length < 11) {
-    return res.status(400).json({ success: false, message: 'OP inválida para atualização' });
-  }
-
-  try {
-    const num = op.substring(0, 6);
-    const item = op.substring(6, 8);
-    const sequen = op.substring(8, 11);
-
-    const connection = await getSqlPool();
-    const result = await connection.request()
-      .input('nf', sql.VarChar, nf)
-      .input('filial', sql.VarChar, filial || process.env['NEXT_PUBLIC_API_FILIAL'])
-      .input('num', sql.VarChar, num)
-      .input('item', sql.VarChar, item)
-      .input('sequen', sql.VarChar, sequen)
-      .query(`
-        UPDATE SC2010
-        SET C2_XNFISC = @nf
-        WHERE C2_FILIAL = @filial 
-          AND C2_NUM = @num 
-          AND C2_ITEM = @item 
-          AND C2_SEQUEN = @sequen 
-          AND D_E_L_E_T_ = ''
-      `);
-
-    return res.json({ success: true, message: 'NF atualizada no Protheus', rowsAffected: result.rowsAffected });
-  } catch (err: any) {
-    console.error('[SQL ERROR]', err);
-    return res.status(500).json({ success: false, message: 'Erro ao gravar no banco', error: err.message });
-  }
-});
 
 /**
  * Serve static files from /browser

@@ -18,8 +18,11 @@ WSRESTFUL WsFuncApontamento DESCRIPTION "API REST para todas as Funções Apontame
     WSDATA FILIAL   AS STRING
     WSDATA OP       AS STRING
     WSDATA OPERADOR AS STRING
+    WSDATA NF       AS STRING
 
     WSMETHOD GET DESCRIPTION "Consulta para todas as Funções Apontamento"  WSSYNTAX "/WsFuncApontamento/{OP}/{OPERADOR}"
+
+    WSMETHOD POST DESCRIPTION "Atualiza a NF na OP na SC2" WSSYNTAX "/WsFuncApontamento/{OP}/{NF}"
 
 END WSRESTFUL
 
@@ -250,3 +253,62 @@ WSMETHOD GET WSRECEIVE WSSERVICE WsFuncApontamento
     RestArea(aArea)
 Return .T.
 
+
+// ---------------------------------------------------------
+// Metodo POST para receber o update da NF
+// ---------------------------------------------------------
+WSMETHOD POST WSRECEIVE WSSERVICE WsFuncApontamento
+    Local aArea       := GetArea()
+    Local cOp         := If(!Empty(::OP), ::OP, If(Len(::aURLParms) >= 1, ::aURLParms[1], ""))
+    Local cNf         := If(!Empty(::NF), ::NF, If(Len(::aURLParms) >= 2, ::aURLParms[2], ""))
+    Local cNum, cItem, cSequen
+    Private oResponse := JsonObject():New()
+
+    ::SetContentType("application/json")
+
+    If Empty(cOp)
+        oResponse["success"] := .F.
+        oResponse["message"] := "Ordem de Producao (OP) nao informada."
+        ::SetResponse(oResponse:toJson())
+        RestArea(aArea)
+        Return .F.
+    EndIf
+
+    If Empty(cNf)
+        oResponse["success"] := .F.
+        oResponse["message"] := "Nota Fiscal (NF) nao informada."
+        ::SetResponse(oResponse:toJson())
+        RestArea(aArea)
+        Return .F.
+    EndIf
+
+    RpcClearEnv()
+    RpcSetType(3)
+    If RpcSetEnv("01", cFilial)
+        DbSelectArea("SC2")
+        SC2->(DbSetOrder(1)) // Filial + OP + Item + Seq
+
+        cNum    := SubStr(cOp, 1, 6)
+        cItem   := SubStr(cOp, 7, 2)
+        cSequen := SubStr(cOp, 9, 3)
+
+        If SC2->(DbSeek(xFilial("SC2") + cNum + cItem + cSequen))
+            RecLock("SC2", .F.)
+            SC2->C2_XNFISC := cNf
+            SC2->(MsUnlock())
+
+            oResponse["success"]      := .T.
+            oResponse["message"]      := "NF atualizada com sucesso na OP."
+            oResponse["rowsAffected"] := 1
+        Else
+            oResponse["success"] := .F.
+            oResponse["message"] := "Ordem de Producao nao encontrada (SC2)."
+        EndIf
+    Else
+        oResponse["success"] := .F.
+        oResponse["message"] := "Nao foi possivel conectar na empresa/filial."
+    EndIf
+
+    ::SetResponse(oResponse:toJson())
+    RestArea(aArea)
+Return .T.
