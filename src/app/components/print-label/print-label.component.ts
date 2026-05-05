@@ -564,12 +564,16 @@ export class PrintLabelComponent implements OnInit {
     if (!this.opNumber || !this.nfValue) return;
 
     this.labelService.updateLocalNF(this.opNumber, this.nfValue, '').subscribe({
-      next: (res) => {
-        this.notification.success('Nota Fiscal atualizada no Protheus!');
+      next: (res: any) => {
+        if (res && res.success) {
+          this.notification.success(res.message || 'Nota Fiscal atualizada no Protheus!');
+        } else {
+          this.notification.error(res?.message || res?.error || 'Erro ao atualizar a NF.');
+        }
       },
       error: (err) => {
-        console.error('Erro SQL:', err);
-        this.notification.error('Erro ao atualizar NF no Banco de Dados');
+        console.error('Erro na requisição:', err);
+        this.notification.error('Erro na comunicação com o servidor');
       }
     });
   }
